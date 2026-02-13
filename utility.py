@@ -1,11 +1,13 @@
 import random
+import json
+import re
+from pathlib import Path
+from time import sleep
+
 import requests
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
-import re
-import json
-from pathlib import Path
-from time import sleep
+from cryptography.fernet import Fernet, InvalidToken
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 BASE_URL = "https://etcsl.orinst.ox.ac.uk/proverbs/"
@@ -19,6 +21,29 @@ ETCSL_BOILERPLATE = (
     "Project info: consolidated bibliography | about the project | credits and copyright | links "
     "This composition: composite text"
 )
+
+# Hardcoded key for archive encryption (replace with env var in production)
+FERNET_KEY = b"-0RLQBWj_3LrpGCh5OBk2LLnaOGxpUs_jqjXDS1eUZY="
+
+
+def wisdom_score(text: str) -> int:
+    """Compute a deterministic wisdom score (1-10) from proverb text."""
+    words = text.split()
+    n = len(words)
+    score = 4
+    if "?" in text:
+        score += 1
+    if 8 <= n <= 25:
+        score += 1
+    if "," in text or ";" in text:
+        score += 1
+    for contrast in (" not ", " but ", " though ", " yet ", " or "):
+        if contrast in text.lower():
+            score += 1
+            break
+    if '"' in text:
+        score += 1
+    return max(1, min(10, score))
 
 
 def _strip_editorial(line: str) -> str:
@@ -147,13 +172,14 @@ def parse_proverb_page(url: str, *, include_editorial_noise: bool = False):
 
     proverb_blocks = _split_into_proverbs(cleaned_lines)
 
-    # One JSON object per proverb; optionally skip editorial-only entries
+    # One JSON object per proverb; optionally skip editorial-only entries; wisdom at ingestion
     return [
         {
             "collection": collection,
             "proverb_number": num,
             "composition": composition,
             "text": text,
+            "wisdom_score": wisdom_score(text),
         }
         for num, text in proverb_blocks
         if include_editorial_noise or _is_substantive_proverb(text)
@@ -193,11 +219,41 @@ def build_proverb_archive(
     return archive
 
 
-def get_random_proverb(path: str | Path = "sumerian_proverbs.json") -> dict:
+def _get_fernet() -> Fernet:
+    """Return Fernet instance using the hardcoded key."""
+    return Fernet(FERNET_KEY)
+
+
+def load_archive(path: str | Path) -> list[dict]:
+    """Load proverb archive from path (decrypted with hardcoded key)."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"Proverb archive not found: {path}")
+    fernet = _get_fernet()
+    raw = path.read_bytes()
+    try:
+        decrypted = fernet.decrypt(raw)
+        return json.loads(decrypted.decode("utf-8"))
+    except InvalidToken as e:
+        raise RuntimeError(
+            f"Decryption failed (wrong key or file not encrypted?). {path}"
+        ) from e
+
+
+def save_archive(path: str | Path, data: list[dict]) -> None:
+    """Save proverb archive to path (encrypted with hardcoded key)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+    fernet = _get_fernet()
+    path.write_bytes(fernet.encrypt(payload))
+
+
+def get_random_proverb(path: str | Path = "ancient_wisdoms.json") -> dict:
     """Load the proverb archive from JSON and return a random proverb.
 
     Args:
-        path: Path to sumerian_proverbs.json (default: "sumerian_proverbs.json").
+        path: Path to ancient_wisdoms.json (default: "ancient_wisdoms.json").
 
     Returns:
         A single proverb dict with keys: collection, proverb_number, composition, text.
@@ -207,11 +263,7 @@ def get_random_proverb(path: str | Path = "sumerian_proverbs.json") -> dict:
         ValueError: If the archive is empty.
     """
     path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"Proverb archive not found: {path}")
-
-    with open(path, encoding="utf-8") as f:
-        proverbs = json.load(f)
+    proverbs = load_archive(path)
 
     if not proverbs:
         raise ValueError("Proverb archive is empty")

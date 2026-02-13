@@ -1,3 +1,4 @@
 __pycache__/
 .venv/
-sumerian_proverbs.json
+.env
+ancient_wisdoms.json

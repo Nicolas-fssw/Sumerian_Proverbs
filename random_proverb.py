@@ -4,27 +4,7 @@
 import argparse
 from pathlib import Path
 
-from utility import get_random_proverb
-
-
-def wisdom_score(text: str) -> int:
-    """Compute a deterministic wisdom score (1-10) from proverb text."""
-    words = text.split()
-    n = len(words)
-    score = 4  # base
-    if "?" in text:
-        score += 1  # question suggests reflection
-    if 8 <= n <= 25:
-        score += 1  # moderate length
-    if "," in text or ";" in text:
-        score += 1  # structured / multiple clauses
-    for contrast in (" not ", " but ", " though ", " yet ", " or "):
-        if contrast in text.lower():
-            score += 1
-            break  # one bonus for contrast
-    if '"' in text:
-        score += 1  # cited speech / dialogue
-    return max(1, min(10, score))
+from utility import get_random_proverb, wisdom_score
 
 
 def main() -> None:
@@ -35,8 +15,8 @@ def main() -> None:
         "-f",
         "--file",
         type=Path,
-        default=Path("sumerian_proverbs.json"),
-        help="Path to sumerian_proverbs.json (default: sumerian_proverbs.json)",
+        default=Path("ancient_wisdoms.json"),
+        help="Path to ancient_wisdoms.json (default: ancient_wisdoms.json)",
     )
     parser.add_argument(
         "-q",
@@ -53,7 +33,7 @@ def main() -> None:
     else:
         comp = proverb["composition"]
         num = proverb["proverb_number"]
-        wisdom = wisdom_score(proverb["text"])
+        wisdom = proverb.get("wisdom_score") or wisdom_score(proverb["text"])
         print(f"Composition {comp}, proverb {num}")
         print(f"Wisdom score: {wisdom}/10")
         print(proverb["text"])

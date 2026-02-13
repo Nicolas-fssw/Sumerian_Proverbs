@@ -2,22 +2,27 @@
 """Create the Sumerian proverb archive from ETCSL and save to JSON."""
 
 import argparse
-import json
 from pathlib import Path
 
-from utility import build_proverb_archive
+from cryptography.fernet import Fernet
 
+from utility import build_proverb_archive, save_archive
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Fetch ETCSL proverb pages and save to a JSON archive."
     )
     parser.add_argument(
+        "--generate-key",
+        action="store_true",
+        help="Print a new Fernet key and exit. Set PROVERB_ARCHIVE_KEY to this value.",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=Path,
-        default=Path("sumerian_proverbs.json"),
-        help="Output JSON path (default: sumerian_proverbs.json)",
+        default=Path("ancient_wisdoms.json"),
+        help="Output JSON path (default: ancient_wisdoms.json)",
     )
     parser.add_argument(
         "--include-editorial-noise",
@@ -41,6 +46,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.generate_key:
+        print(Fernet.generate_key().decode())
+        return
+
     print("Fetching proverb pages from ETCSL...")
     archive = build_proverb_archive(
         include_editorial_noise=args.include_editorial_noise,
@@ -48,10 +57,7 @@ def main() -> None:
         last_page=args.last_page,
     )
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(archive, f, ensure_ascii=False, indent=2)
-
+    save_archive(args.output, archive)
     print(f"Saved {len(archive)} proverbs to {args.output}")
 
 
