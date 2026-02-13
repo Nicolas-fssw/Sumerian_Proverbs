@@ -6,13 +6,10 @@ https://etcsl.orinst.ox.ac.uk/index1.htm
 
 ## Encrypted archive (required)
 
-The archive is always stored encrypted. You must set the environment variable `PROVERB_ARCHIVE_KEY` to a Fernet key. Both `create_proverb_archive` and `random_proverb` will raise if the key is missing.
+The archive is always stored encrypted. Put your Fernet key in a `.env` file in the project root:
 
-Generate a key (Python):
-
-```python
-from cryptography.fernet import Fernet
-print(Fernet.generate_key().decode())
+```
+PROVERB_ARCHIVE_KEY=your-fernet-key-here
 ```
 
-Then set it, e.g. `export PROVERB_ARCHIVE_KEY="your-key"` (or use a `.env` file and load it).
+Generate a key: `uv run python create_proverb_archive.py --generate-key`, then copy the output into `.env`. The `.env` file is gitignored.

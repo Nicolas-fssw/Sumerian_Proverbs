@@ -1,3 +1,4 @@
+import os
 import random
 import json
 import re
@@ -8,6 +9,9 @@ import requests
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet, InvalidToken
+from dotenv import load_dotenv
+
+load_dotenv()
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 BASE_URL = "https://etcsl.orinst.ox.ac.uk/proverbs/"
@@ -22,8 +26,7 @@ ETCSL_BOILERPLATE = (
     "This composition: composite text"
 )
 
-# Hardcoded key for archive encryption (replace with env var in production)
-FERNET_KEY = b"-0RLQBWj_3LrpGCh5OBk2LLnaOGxpUs_jqjXDS1eUZY="
+ENV_KEY = "PROVERB_ARCHIVE_KEY"
 
 
 def wisdom_score(text: str) -> int:
@@ -220,12 +223,21 @@ def build_proverb_archive(
 
 
 def _get_fernet() -> Fernet:
-    """Return Fernet instance using the hardcoded key."""
-    return Fernet(FERNET_KEY)
+    """Return Fernet instance. Key from .env or env var PROVERB_ARCHIVE_KEY."""
+    key = os.environ.get(ENV_KEY)
+    if not key or not key.strip():
+        raise RuntimeError(
+            f"Set {ENV_KEY} in a .env file or environment (e.g. PROVERB_ARCHIVE_KEY=your-fernet-key)."
+        )
+    try:
+        key_bytes = key.strip().encode() if isinstance(key, str) else key
+        return Fernet(key_bytes)
+    except Exception as e:
+        raise RuntimeError(f"Invalid {ENV_KEY}: {e}") from e
 
 
 def load_archive(path: str | Path) -> list[dict]:
-    """Load proverb archive from path (decrypted with hardcoded key)."""
+    """Load proverb archive from path (decrypted with key from .env)."""
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Proverb archive not found: {path}")
@@ -241,7 +253,7 @@ def load_archive(path: str | Path) -> list[dict]:
 
 
 def save_archive(path: str | Path, data: list[dict]) -> None:
-    """Save proverb archive to path (encrypted with hardcoded key)."""
+    """Save proverb archive to path (encrypted with key from .env)."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
