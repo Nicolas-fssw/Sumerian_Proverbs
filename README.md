@@ -1,2 +1,4 @@
 # Sumerian_Proverbs
 I am a fashioner of words, a composer of songs, a composer of words, and that they will recite my songs as heavenly writings, and that they will bow down before my words......
+
+https://etcsl.orinst.ox.ac.uk/index1.htm
