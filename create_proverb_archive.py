@@ -30,20 +30,6 @@ def main() -> None:
         help="Include proverbs that are only editorial (e.g. '1 line unclear'). "
         "By default these are skipped.",
     )
-    parser.add_argument(
-        "--first-page",
-        type=int,
-        default=1,
-        metavar="N",
-        help="First page number 1–28 (default: 1)",
-    )
-    parser.add_argument(
-        "--last-page",
-        type=int,
-        default=28,
-        metavar="N",
-        help="Last page number 1–28 inclusive (default: 28)",
-    )
     args = parser.parse_args()
 
     if args.generate_key:
@@ -51,11 +37,7 @@ def main() -> None:
         return
 
     print("Fetching proverb pages from ETCSL...")
-    archive = build_proverb_archive(
-        include_editorial_noise=args.include_editorial_noise,
-        first_page=args.first_page,
-        last_page=args.last_page,
-    )
+    archive = build_proverb_archive(include_editorial_noise=args.include_editorial_noise)
 
     save_archive(args.output, archive)
     print(f"Saved {len(archive)} proverbs to {args.output}")
