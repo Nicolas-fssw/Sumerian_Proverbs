@@ -36,7 +36,15 @@ def main() -> None:
         wisdom = proverb.get("wisdom_score") or wisdom_score(proverb["text"])
         print(f"Composition {comp}, proverb {num}")
         print(f"Wisdom score: {wisdom}/10")
-        print(proverb["text"])
+        COLOR = [
+            ("\x1b[31m", "\x1b[0m"),
+            ("\x1b[33m", "\x1b[0m"),
+            ("\x1b[39m", "\x1b[0m"),
+            ("\x1b[32m", "\x1b[0m"),
+            ("\x1b[34m", "\x1b[0m"),
+        ]
+        b, e = COLOR[wisdom//2]
+        print(b+proverb["text"]+e)
 
 
 if __name__ == "__main__":
