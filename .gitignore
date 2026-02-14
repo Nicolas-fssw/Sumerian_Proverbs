@@ -2,5 +2,9 @@ __pycache__/
 .venv/
 .env
 ancient_wisdoms.json
+<<<<<<< HEAD
 proverb_model/
 .vscode/
+=======
+.vscode
+>>>>>>> 8ef9132f88f0ad2f6dcc6ea9abab88add1c931eb
