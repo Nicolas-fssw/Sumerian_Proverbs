@@ -6,6 +6,7 @@ import random
 from pathlib import Path
 
 from utility import get_random_proverb
+from generate_proverb import generate_proverb, load_proverb_model
 
 
 def main() -> None:
@@ -33,11 +34,6 @@ def main() -> None:
         help="Number of rounds (default: 5)",
     )
     args = parser.parse_args()
-
-    try:
-        from generate_proverb import generate_proverb, load_proverb_model
-    except ImportError:
-        raise SystemExit("Install ML dependencies: uv add torch transformers")
 
     if not args.model_dir.is_dir():
         raise SystemExit(
