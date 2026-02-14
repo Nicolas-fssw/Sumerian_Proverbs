@@ -55,7 +55,9 @@ def is_acceptable_proverb(text: str) -> bool:
     return True
 
 
-def _generate_one(tokenizer, model, prompt: str, temperature: float) -> str:
+def _generate_one(
+    tokenizer, model, prompt: str, temperature: float, *, sanitize: bool = True
+) -> str:
     import torch
     inputs = tokenizer(prompt, return_tensors="pt")
     with torch.no_grad():
@@ -73,7 +75,7 @@ def _generate_one(tokenizer, model, prompt: str, temperature: float) -> str:
             rest = rest.split(sep)[0].strip() + (sep.strip() or "")
             break
     rest = rest or full[len(prompt) :].strip()
-    return sanitize_proverb(rest)
+    return sanitize_proverb(rest) if sanitize else rest
 
 
 def load_proverb_model(model_dir: Path | str):
@@ -139,18 +141,41 @@ def main() -> None:
         help="Path to saved model (default: proverb_model)",
     )
     parser.add_argument(
+        "-p",
+        "--prompt",
+        type=str,
+        default=None,
+        metavar="TEXT",
+        help="Custom prompt for the model; model continues from this text (default: 'Proverb: ')",
+    )
+    parser.add_argument(
         "--temperature",
         type=float,
         default=0.9,
         help="Sampling temperature 0.0–2.0 (default: 0.9)",
     )
+    parser.add_argument(
+        "--no-sanitize",
+        action="store_true",
+        help="When using -p/--prompt, print raw model output without sanitization",
+    )
     args = parser.parse_args()
 
     try:
-        text = generate_proverb(
-            model_dir=args.model_dir,
-            temperature=args.temperature,
-        )
+        if args.prompt is not None:
+            tokenizer, model = load_proverb_model(args.model_dir)
+            text = _generate_one(
+                tokenizer,
+                model,
+                args.prompt.strip(),
+                args.temperature,
+                sanitize=not args.no_sanitize,
+            )
+        else:
+            text = generate_proverb(
+                model_dir=args.model_dir,
+                temperature=args.temperature,
+            )
     except FileNotFoundError as e:
         raise SystemExit(e) from e
     except ImportError:
