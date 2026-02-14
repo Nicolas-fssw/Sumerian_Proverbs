@@ -2,3 +2,5 @@ __pycache__/
 .venv/
 .env
 ancient_wisdoms.json
+proverb_model/
+.vscode/
